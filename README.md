@@ -1,0 +1,1 @@
+This repo contains code for feature extraction and creating classifier for distinguishing RNA with high coding potentioal among non-coding RNA. I have used CPAT-project code for extraction some features they used in CPAT log-regression model.
