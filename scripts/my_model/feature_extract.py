@@ -2,6 +2,7 @@ import numpy as np
 from numpy import mean, median, std, nansum
 import os, sys
 from string import maketrans
+import re
 
 from cpmodule import fickett
 from cpmodule  import orf
@@ -42,8 +43,69 @@ def count_gc(seq):
         
         seq = seq.upper()
         dict_nucl = {"A":0, "T":0, "G":1, "C":1}
-        GC = np.sum([dict_nucl[c] for c in seq])/(len(seq)*1.0)
+        GC = np.sum([dict_nucl.get(c,0) for c in seq])/(len(seq)*1.0)
         return GC
+
+
+def kozak_feat(seq, find_num):
+    
+    # first_feature {-3,+4}
+    # second -- {-2, -1}
+    # third -- {-6}
+    # method returns 3 boolean values, 
+    # that mean find or not find for every feature
+    
+    
+    if find_num < 6:
+        return -1
+    
+    else:
+        feat34 = 0
+        feat21 = 0
+        feat6 = 0
+
+        num6 = seq[find_num-6]
+        if len(seq) >= find_num+4:
+            num4 = seq[find_num+3]
+        else:
+            num4 = -1
+
+        num3 = seq[find_num-3]
+        num2 = seq[find_num-2]
+        num1 = seq[find_num-1]
+        
+    if num6 == "G":
+        feat6 = 1
+    if num4 == "G" and (num3 == "A" or num3 == "G"):
+        feat34 = 1
+    if num2 == "C" and num1 == "C":
+        feat21 = 1
+    
+    return feat34, feat21, feat6
+
+def find_kozak_feat(seq):
+    
+    atg_addr = [m.start() for m in re.finditer("ATG", seq)]
+    atg_feat = []
+    feat_all = False
+    
+    if len(atg_addr) <1:
+        return (0,0,0)
+    
+    for atg in atg_addr:
+        feat_all = kozak_feat(seq, atg)
+        atg_feat.append(feat_all)
+        if feat_all == -1:
+            return (0,0,0)
+        if feat_all == (1, 1, 1):
+            feat_all = 1
+            break
+   
+    if feat_all==1:
+        return (1, 1, 1)
+    else:
+        return atg_feat[np.argmax([sum(i) for i in atg_feat])]
+
 
 coding={}
 noncoding={}	
@@ -56,13 +118,17 @@ for line in open(options.hexamer_dat):
 
 count = 0
 TMP = open(options.out_file + '.txt', 'w')
-TMP.write('\t'.join(("sname", "mRNA_size", "CDS_size", "fickett_score", "hexamer", "gc_content"))+'\n')
+TMP.write('\t'.join(("sname", "mRNA_size", "ORF_size", "fickett_score", "hexamer", "gc_content", "kozak34", "kozak21", "kozak6"))+'\n')
 for sname,seq in FrameKmer.seq_generator(options.gene_file):	
-        count +=1
-        gc_content = count_gc(seq)
+	count +=1
+	print(sname)
+	gc_content = count_gc(seq)
+	k34, k21, k6 = find_kozak_feat(seq)
+
 	(mRNA_size, CDS_size, fickett_score,hexamer) = extract_feature_from_seq(seq = seq, stt = options.start_codons,stp = options.stop_codons,c_tab=coding,g_tab=noncoding)
-	TMP.write('\t'.join(str(i) for i in (sname, mRNA_size, CDS_size, fickett_score, hexamer, gc_content))+'\n')
-	print sys.stderr, "%d genes finished\r" % count,
+	TMP.write('\t'.join(str(i) for i in (sname, mRNA_size, CDS_size, fickett_score, hexamer, gc_content, k34, k21, k6))+'\n')
+	if count % 30 == 0:
+		print sys.stderr, "%d genes finished\r" % count,
 TMP.close()
 
 
