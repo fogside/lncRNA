@@ -112,7 +112,10 @@ def find_kozak_feat(seq):
     else:
         return atg_feat[np.argmax([sum(i) for i in atg_feat])]
 
-
+def clear_name(name):
+    name = name.replace('"', '')
+    name = name.replace("'", "")
+    return name
 
 def gtf_parser(file_name, drop_n_first_lines = 1, f_format='gtf'):
     
@@ -137,13 +140,14 @@ def gtf_parser(file_name, drop_n_first_lines = 1, f_format='gtf'):
 
         tmp = tmp[0].split('\t')
         exon = int(tmp[4]) - int(tmp[3]) if tmp[2] == 'exon' else None
-        
+
         if name is None:
             print("Incorrect data format. Use gtf file!")
             return -1
         elif exon is None:
             continue
         else:
+            name = clear_name(name)
             if name in exon_length:
                 exon_length[name].append(exon)
             else:
