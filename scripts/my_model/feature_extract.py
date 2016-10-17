@@ -18,6 +18,12 @@ parser.add_option("-o","--outfile",action="store",dest="out_file",help="output f
 parser.add_option("-x","--hex",action="store",dest="hexamer_dat",help="Prebuilt hexamer frequency table (Human, Mouse, Fly, Zebrafish). Run 'make_hexamer_tab.py' to make this table out of your own training dataset.")
 parser.add_option("-s","--start",action="store",dest="start_codons",default='ATG',help="Start codon (DNA sequence, so use 'T' instead of 'U') used to define open reading frame (ORF). default=%default")
 parser.add_option("-t","--stop",action="store",dest="stop_codons",default='TAG,TAA,TGA',help="Stop codon (DNA sequence, so use 'T' instead of 'U') used to define open reading frame (ORF). Multiple stop codons should be separated by ','. default=%default")
+parser.add_option("--gtf",action="store",dest="gtf",help="Please, provide gtf/gff file for extraction exon-related features.")
+parser.add_option("--fformat",action="store",dest="fformat",default='gtf',help="Please, provide file format: -ff gtf or -ff gff. default gtf.")
+parser.add_option("-l","--lines-drop",action="store",dest="lines_drop",default=1,help="Provide how many lines drop from the start of the gtf/gff file. Default = 1")
+
+
+
 
 (options,args)=parser.parse_args()
 
@@ -107,6 +113,47 @@ def find_kozak_feat(seq):
         return atg_feat[np.argmax([sum(i) for i in atg_feat])]
 
 
+
+def gtf_parser(file_name, drop_n_first_lines = 1, f_format='gtf'):
+    
+    exon_length = {}
+    gtf = []
+    
+    with open(file_name, 'r') as f:
+        gtf = f.readlines()
+    
+    gtf = gtf[drop_n_first_lines:]
+    
+    for line in gtf:
+        
+        tmp = line.split(';')
+        if f_format == 'gff':
+            name = tmp[2].split('=')[1].upper() if tmp[2].startswith('transcript_id') else None
+        elif f_format == 'gtf':
+            name = tmp[1].split(' ')[2].upper() if tmp[1].split(' ')[1].startswith('transcript_id') else None
+        else:
+            print("Incorrect f_format parameter. Please, choose `gtf` or `gff`")
+            return -1
+
+        tmp = tmp[0].split('\t')
+        exon = int(tmp[4]) - int(tmp[3]) if tmp[2] == 'exon' else None
+        
+        if name is None:
+            print("Incorrect data format. Use gtf file!")
+            return -1
+        elif exon is None:
+            continue
+        else:
+            if name in exon_length:
+                exon_length[name].append(exon)
+            else:
+                exon_length[name] = [exon]
+                
+    res_max = {key:max(val) for key,val in exon_length.items()}
+    res_mean = {key:np.mean(val) for key,val in exon_length.items()}
+    res_num = {key:len(val) for key,val in exon_length.items()}
+    return res_max, res_mean, res_num
+
 coding={}
 noncoding={}	
 for line in open(options.hexamer_dat):
@@ -116,18 +163,22 @@ for line in open(options.hexamer_dat):
 	coding[fields[0]] = float(fields[1])
 	noncoding[fields[0]] =  float(fields[2])
 
-count = 0
+
+exon_max, exon_mean, exon_num = gtf_parser(options.gtf, int(options.lines_drop), options.fformat)
 TMP = open(options.out_file + '.txt', 'w')
-TMP.write('\t'.join(("sname", "mRNA_size", "ORF_size", "fickett_score", "hexamer", "gc_content", "kozak34", "kozak21", "kozak6"))+'\n')
+TMP.write('\t'.join(("sname", "mRNA_size", "ORF_size", "fickett_score", "hexamer", "gc_content", "kozak34", "kozak21", "kozak6", "exon_max", "exon_mean", "exon_num"))+'\n')
+
+count = 0
 for sname,seq in FrameKmer.seq_generator(options.gene_file):	
 	count +=1
-	print(sname)
 	gc_content = count_gc(seq)
 	k34, k21, k6 = find_kozak_feat(seq)
 
-	(mRNA_size, CDS_size, fickett_score,hexamer) = extract_feature_from_seq(seq = seq, stt = options.start_codons,stp = options.stop_codons,c_tab=coding,g_tab=noncoding)
-	TMP.write('\t'.join(str(i) for i in (sname, mRNA_size, CDS_size, fickett_score, hexamer, gc_content, k34, k21, k6))+'\n')
-	if count % 30 == 0:
+	(mRNA_size, CDS_size, fickett_score,hexamer) = extract_feature_from_seq(seq = seq,\
+stt = options.start_codons,stp = options.stop_codons,c_tab=coding,g_tab=noncoding)
+	TMP.write('\t'.join(str(i) for i in (sname, mRNA_size, CDS_size, fickett_score,hexamer, gc_content, k34, k21, k6, exon_max.get(sname,0), exon_mean.get(sname,0), exon_num.get(sname,0)))+'\n')
+
+	if count % 100 == 0:
 		print sys.stderr, "%d genes finished\r" % count,
 TMP.close()
 
