@@ -56,7 +56,7 @@ class ORFFinder:
             longest = find_max(self.longests)
 
         else:
-            longest = self.find_three_longest()
+            longest = find_max(self.find_three_longest()[0])
 
         if longest == -1:
             size = -1
