@@ -36,6 +36,10 @@ class ORFFinder:
         start_addrs = self._find_three_starts_(patterns=self.start_codons)
         stop_addrs = self._find_three_starts_(patterns=self.stop_codons, fun=np.max)
 
+        if start_addrs == -1 or stop_addrs == -1:
+            self.longests = -1
+            return -1
+
         self.longests = []
         for start, stop in zip(start_addrs.values(), stop_addrs.values()):
             if (start >= 0) and (stop >= 0):
@@ -45,11 +49,18 @@ class ORFFinder:
 
     def longest_orf(self):
 
-        find_max = lambda lst: lst[np.argmax([len(k) for k in lst])]
+        find_max = lambda lst: lst[np.argmax([len(k) for k in lst])] if lst!=-1 else -1
+
 
         if self.longests is not None:
             longest = find_max(self.longests)
-        else:
-            longest = find_max(self.find_three_longest()[0])
 
-        return longest, len(longest)
+        else:
+            longest = self.find_three_longest()
+
+        if longest == -1:
+            size = -1
+        else:
+            size = len(longest)
+
+        return longest, size

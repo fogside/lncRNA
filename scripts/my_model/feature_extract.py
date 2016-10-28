@@ -1,6 +1,6 @@
 import numpy as np
 # from numpy import mean, median, std, nansum
-import os, sys
+import sys
 # from string import maketrans
 # import re
 
@@ -52,11 +52,14 @@ def extract_feature_from_seq(seq, c_tab, g_tab, stt=['ATG'], stp=['TAG', 'TAA', 
     orf_finder = orf_extraction.ORFFinder(mRNA_seq, start_codons=stt, stop_codons=stp)
 
     ORF_seq, ORF_size = orf_finder.longest_orf()
-    fickett_score = fickett.fickett_value(ORF_seq)
 
+    ''' in the case if start or stop codons have not been found '''
+    if ORF_seq == -1:
+        return [-1] * 7
+
+    fickett_score = fickett.fickett_value(ORF_seq)
     _, orf_starts = orf_finder.find_three_longest()
     k34, k21, k6 = kozak.find_kozak_feat(seq, orf_starts)
-
     hexamer = FrameKmer.kmer_ratio(ORF_seq, 6, 3, c_tab, g_tab)
 
     return (mRNA_size, ORF_size, fickett_score, hexamer, k34, k21, k6)
@@ -92,5 +95,5 @@ for sname, seq in FrameKmer.seq_generator(options.gene_file):
         exon_mean.get(sname, 0), exon_num.get(sname, 0))) + '\n')
 
     if count % 100 == 0:
-        print(sys.stderr, "%d genes finished\r" % count, end=' ')
+        print(sys.stderr, "%d genes finished\r" % count,)
 TMP.close()
