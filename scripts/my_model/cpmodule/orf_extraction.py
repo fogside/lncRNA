@@ -42,7 +42,6 @@ class ORFFinder:
 
     def _find_three_starts_(self, patterns=['ATG']):
 
-
         addrs = {0: [], 1: [], 2: []}
         bag_of_start = []
 
@@ -58,7 +57,7 @@ class ORFFinder:
             if len(lst) == 0:
                 addrs[i] = -1
                 continue
-            addrs[i] = fun(lst)
+            addrs[i] = lst
 
         return addrs
 
