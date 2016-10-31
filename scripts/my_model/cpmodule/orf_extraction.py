@@ -7,6 +7,7 @@ class ORFFinder:
 
         self.start_codons = start_codons
         self.stop_codons = stop_codons
+        self.longests = None
         self.seq = seq.upper()
 
     def _pairwise_distances_(self, start_vec, stop_vec):
@@ -41,6 +42,7 @@ class ORFFinder:
 
     def _find_three_starts_(self, patterns=['ATG']):
 
+
         addrs = {0: [], 1: [], 2: []}
         bag_of_start = []
 
@@ -56,7 +58,7 @@ class ORFFinder:
             if len(lst) == 0:
                 addrs[i] = -1
                 continue
-            addrs[i] = lst
+            addrs[i] = fun(lst)
 
         return addrs
 
