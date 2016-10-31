@@ -75,5 +75,17 @@ class ORFFinder:
 
     def longest_orf(self):
 
-        find_max = lambda lst: lst[np.argmax([len(k) for k in lst])]
-        return find_max(self.find_three_longest())
+        find_max = lambda lst: lst[np.argmax([len(k) for k in lst])] if lst != -1 else -1
+
+        if self.longests is not None:
+            longest = find_max(self.longests)
+
+        else:
+            longest = self.find_three_longest()
+
+        if longest == -1:
+            size = -1
+        else:
+            size = len(longest)
+
+        return longest, size
