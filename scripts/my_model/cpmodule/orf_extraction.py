@@ -1,4 +1,6 @@
 import re
+import numpy as np
+
 
 class ORFFinder:
     def __init__(self, seq, start_codons=['ATG'], stop_codons=['TAG', 'TAA', 'TGA']):
