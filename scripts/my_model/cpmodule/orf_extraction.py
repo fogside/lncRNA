@@ -9,6 +9,7 @@ class ORFFinder:
         self.stop_codons = stop_codons
         self.longests = None
         self.seq = seq.upper()
+        self.start_addrs = None
 
     def _pairwise_distances_(self, start_vec, stop_vec):
         '''
@@ -63,30 +64,39 @@ class ORFFinder:
 
     def find_three_longest(self):
 
-        start_addrs = self._find_three_starts_(patterns=self.start_codons)
+        if self.longests is not None:
+            return self.longests, self.start_addrs.values()
+
+        self.start_addrs = self._find_three_starts_(patterns=self.start_codons)
         stop_addrs = self._find_three_starts_(patterns=self.stop_codons)
 
+        if self.start_addrs == -1 or stop_addrs == -1:
+            self.longests = -1
+            return -1
+
         self.longests = []
-        for start_vec, stop_vec in zip(start_addrs.values(), stop_addrs.values()):
+        for start_vec, stop_vec in zip(self.start_addrs.values(), stop_addrs.values()):
             if (start_vec != -1) and (stop_vec != -1):
                 start, stop = self._return_start_stop_(start_vec, stop_vec)
                 self.longests.append(self.seq[start:stop + 3])
 
-        return self.longests
+        return self.longests, self.start_addrs.values()
 
     def longest_orf(self):
 
         find_max = lambda lst: lst[np.argmax([len(k) for k in lst])] if lst != -1 else -1
 
-        if self.longests is not None:
+        if self.longests is not None and self.longests != -1:
             longest = find_max(self.longests)
-
-        else:
-            longest = self.find_three_longest()
-
-        if longest == -1:
-            size = -1
-        else:
             size = len(longest)
+
+        elif self.longests == -1:
+            longest = size = -1
+
+        else:
+            # self.longests is None:
+            tmp = self.find_three_longest()
+            longest = find_max(tmp[0]) if tmp != -1 else -1
+            size = len(longest) if longest != -1 else -1
 
         return longest, size
