@@ -43,26 +43,27 @@ def count_gc(seq):
     return GC
 
 
-def extract_feature_from_seq(seq, c_tab, g_tab, stt=['ATG'], stp=['TAG', 'TAA', 'TGA']):
+def extract_feature_from_seq(seq, c_tab, g_tab):
     '''extract features of sequence from fasta entry'''
 
     mRNA_seq = seq.upper()
     mRNA_size = len(seq)
 
-    orf_finder = orf_extraction.ORFFinder(mRNA_seq, start_codons=stt, stop_codons=stp)
-
-    ORF_seq, ORF_size = orf_finder.longest_orf()
+    orf_finder = orf_extraction.ORFFinder(mRNA_seq)
+    tmp = orf_finder.find_longest()
 
     ''' in the case if start or stop codons have not been found '''
-    if ORF_seq == -1:
-        return [-1] * 7
+    if tmp==-1:
+        return [-1] * 9
 
-    fickett_score = fickett.fickett_value(ORF_seq)
-    _, orf_starts = orf_finder.find_three_longest()
-    k34, k21, k6 = kozak.find_kozak_feat(seq, orf_starts)
-    hexamer = FrameKmer.kmer_ratio(ORF_seq, 6, 3, c_tab, g_tab)
+    starts, orf_seq, orf_size, mean_orf_length, orf_coverage = tmp
 
-    return (mRNA_size, ORF_size, fickett_score, hexamer, k34, k21, k6)
+    fickett_score = fickett.fickett_value(orf_seq)
+
+    k34, k21, k6 = kozak.find_kozak_feat(mRNA_seq, starts)
+    hexamer = FrameKmer.kmer_ratio(orf_seq, 6, 3, c_tab, g_tab)
+
+    return (mRNA_size, orf_size, mean_orf_length, orf_coverage, fickett_score, hexamer, k34, k21, k6)
 
 
 coding = {}
@@ -77,23 +78,25 @@ for line in open(options.hexamer_dat):
 exon_max, exon_mean, exon_num = gtf_exons.gtf_parser(options.gtf, int(options.lines_drop), options.fformat)
 
 TMP = open(options.out_file + '.txt', 'w')
-TMP.write('\t'.join(("sname", "mRNA_size", "ORF_size", "fickett_score", "hexamer", "gc_content", "kozak34", "kozak21",
+TMP.write('\t'.join(("sname", "mRNA_size", "ORF_size", "mean_orf_length", "orf_coverage", "fickett_score", "hexamer", "gc_content", "kozak34", "kozak21",
                      "kozak6", "exon_max", "exon_mean", "exon_num")) + '\n')
 
 count = 0
-for sname, seq in FrameKmer.seq_generator(options.gene_file):
-    count += 1
-    gc_content = count_gc(seq)
 
-    (mRNA_size, CDS_size, fickett_score, hexamer, k34, k21, k6) = extract_feature_from_seq(seq=seq,
-                                                                                           stt=options.start_codons,
-                                                                                           stp=options.stop_codons,
-                                                                                           c_tab=coding,
-                                                                                           g_tab=noncoding)
+for sname, seq in FrameKmer.seq_generator(options.gene_file):
+
+    gc_content = count_gc(seq)
+    count+=1
+
+    mRNA_size, orf_size, mean_orf_length, orf_coverage, \
+    fickett_score, hexamer, k34, k21, k6  = extract_feature_from_seq(seq=seq,
+                                                                   c_tab=coding,
+                                                                   g_tab=noncoding)
     TMP.write('\t'.join(str(i) for i in (
-        sname, mRNA_size, CDS_size, fickett_score, hexamer, gc_content, k34, k21, k6, exon_max.get(sname, 0),
+        sname, mRNA_size, orf_size, mean_orf_length, orf_coverage, fickett_score, hexamer, gc_content, k34, k21, k6, exon_max.get(sname, 0),
         exon_mean.get(sname, 0), exon_num.get(sname, 0))) + '\n')
 
     if count % 100 == 0:
         print(sys.stderr, "%d genes finished\r" % count,)
+
 TMP.close()
