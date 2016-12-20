@@ -33,8 +33,9 @@ def gtf_parser(file_name, drop_n_first_lines=0, f_format='gtf'):
         exon = int(tmp[4]) - int(tmp[3]) if tmp[2] == 'exon' else None
 
         if name is None:
-            print("Incorrect data format. Use gtf file!")
-            return -1
+            #print("Incorrect data format. Use gtf file!")
+            #return -1
+            continue
         elif exon is None:
             continue
         else:
