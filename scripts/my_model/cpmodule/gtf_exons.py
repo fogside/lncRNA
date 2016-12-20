@@ -7,7 +7,7 @@ def clear_name(name):
     return name
 
 
-def gtf_parser(file_name, drop_n_first_lines=1, f_format='gtf'):
+def gtf_parser(file_name, drop_n_first_lines=0, f_format='gtf'):
 
     exon_length = {}
 
@@ -17,7 +17,9 @@ def gtf_parser(file_name, drop_n_first_lines=1, f_format='gtf'):
     gtf = gtf[drop_n_first_lines:]
 
     for line in gtf:
-
+        
+        if line.startswith('#'):
+            continue
         tmp = line.split(';')
         if f_format == 'gff':
             name = tmp[2].split('=')[1].upper() if tmp[2].startswith('transcript_id') else None
