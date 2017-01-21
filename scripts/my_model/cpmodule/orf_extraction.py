@@ -32,6 +32,8 @@ class ORFFinder:
                     break
                 ret2 = self._find_stop(self.seq, ret1 + 3)
                 if ret2 == -1:
+                    if ret1 != -1:
+                        results.append((len(self.seq) - ret1, ret1, len(self.seq)))
                     break
 
                 results.append((ret2 - ret1, ret1, ret2))
@@ -50,6 +52,6 @@ class ORFFinder:
 
         mean_orf_length = np.mean([len(seqv) for seqv in long3])
         longest_size = len(longest)
-        orf_coverage = (longest_size*1.0)/len(self.seq)
+        orf_coverage = (longest_size * 1.0) / len(self.seq)
 
         return starts, longest, longest_size, mean_orf_length, orf_coverage
