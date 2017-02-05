@@ -52,9 +52,9 @@ def extract_feature_from_seq(seq, c_tab, g_tab):
     orf_finder = orf_extraction.ORFFinder(mRNA_seq)
     tmp = orf_finder.find_longest()
 
-    ''' in the case if start or stop codons have not been found '''
+    ''' in the case if start codon have not been found '''
     if tmp==-1:
-        return [-1] * 9
+        return [0] * 9
 
     starts, orf_seq, orf_size, mean_orf_length, orf_coverage = tmp
 
@@ -84,7 +84,7 @@ TMP.write('\t'.join(("sname", "mRNA_size", "ORF_size", "mean_orf_length", "orf_c
 count = 0
 
 for sname, seq in FrameKmer.seq_generator(options.gene_file):
-
+    
     gc_content = count_gc(seq)
     count+=1
 
