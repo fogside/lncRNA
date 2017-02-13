@@ -200,4 +200,4 @@ merged = pd.merge(my_feats, merged, right_on='queryId', left_on='sname')
 
 print("Finished. Merged shape: {}".format(merged.shape))
 
-merged.to_csv(options.out_file)
+merged.to_csv(options.out_file, index=False)
