@@ -102,6 +102,8 @@ def process_uniref(refs, uniref_raw, verbose=True):
     if verbose:
         print("Result uniref size without duplicates: ", len(merge_hits))
 
+    merge_hits.queryId = merge_hits.queryId.apply(str.upper)
+
     return merge_hits
 
 
@@ -155,6 +157,8 @@ def process_hmmer(refs, folder, verbose=True):
     if verbose:
         print("Result Hmm size without duplicates: ", len(merge_hits))
 
+    merge_hits.queryId = merge_hits.queryId.apply(str.upper)
+
     return merge_hits
 
 
@@ -184,16 +188,24 @@ uniref_cod_data = process_uniref(refs_cod, options.code_uniref_raw, verbose=True
 uniref_noncod_data = process_uniref(refs_noncod, options.noncode_uniref_raw, verbose=True)
 uniref_cod_data['TYPE'] = [1] * len(uniref_cod_data)
 uniref_noncod_data['TYPE'] = [0] * len(uniref_noncod_data)
+uniref_all = pd.concat((uniref_cod_data, uniref_noncod_data))
+
+print('len of code uniref: ', len(uniref_cod_data))
+print('len of noncode uniref: ', len(uniref_noncod_data))
+print('len(all_uniref):', len(uniref_all))
 
 hmm_code_data = process_hmmer(refs_cod, options.folder_code, verbose=True)
 hmm_noncode_data = process_hmmer(refs_noncod, options.folder_noncode, verbose=True)
+hmm_all = pd.concat((hmm_code_data, hmm_noncode_data))
+
+print('len of code hmm: ', len(hmm_code_data))
+print('len of noncode hmm: ', len(hmm_noncode_data))
+print('len(all_hmm):', len(hmm_all))
 
 my_coding = pd.read_csv(options.my_cod_file, sep='\t')
 my_noncoding = pd.read_csv(options.my_noncod_file, sep='\t')
-
-uniref_all = pd.concat((uniref_cod_data, uniref_noncod_data))
-hmm_all = pd.concat((hmm_code_data, hmm_noncode_data))
 my_feats = pd.concat((my_coding, my_noncoding))
+
 
 merged = pd.merge(hmm_all, uniref_all, on='queryId')
 merged = pd.merge(my_feats, merged, right_on='queryId', left_on='sname')
