@@ -195,8 +195,10 @@ uniref_all = pd.concat((uniref_cod_data, uniref_noncod_data))
 hmm_all = pd.concat((hmm_code_data, hmm_noncode_data))
 my_feats = pd.concat((my_coding, my_noncoding))
 
-merged = pd.merge(uniref_all, hmm_all, on='queryId')
+merged = pd.merge(hmm_all, uniref_all, on='queryId')
 merged = pd.merge(my_feats, merged, right_on='queryId', left_on='sname')
+merged.drop('queryId', axis=1, inplace=True)
+
 
 print("Finished. Merged shape: {}".format(merged.shape))
 
