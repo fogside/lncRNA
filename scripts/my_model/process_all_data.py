@@ -132,19 +132,19 @@ def process_hmmer(refs, folder, verbose=True):
 
     data = pd.merge(refs, data, left_on='all_names', right_on='queryId', how='left')
     data.drop('queryId', axis=1, inplace=True)
-    data.columns = ['queryId', 'eVal', 'num_hits', 'score']
+    data.columns = ['queryId', 'eVal_hmm', 'num_hits_hmm', 'score_hmm']
     data.fillna(0, inplace=True)
 
-    eVal = pd.DataFrame(data.groupby('queryId')['eVal'].min())
+    eVal = pd.DataFrame(data.groupby('queryId')['eVal_hmm'].min())
     eVal['queryId'] = eVal.index
     merge_eVal = pd.merge(data, eVal)
 
-    score = pd.DataFrame(merge_eVal.groupby('queryId')['score'].max())
+    score = pd.DataFrame(merge_eVal.groupby('queryId')['score_hmm'].max())
     score['queryId'] = score.index
     merge_score = pd.merge(merge_eVal, score)
     del merge_eVal
 
-    hits = pd.DataFrame(merge_score.groupby('queryId')['num_hits'].max())
+    hits = pd.DataFrame(merge_score.groupby('queryId')['num_hits_hmm'].max())
     hits['queryId'] = hits.index
     # eVal.head()
     merge_hits = pd.merge(merge_score, hits)
