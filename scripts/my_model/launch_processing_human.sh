@@ -1,0 +1,2 @@
+PREFIX=~/lncRNA/data/
+python process_all_data.py -c ${PREFIX}gencode/gencode.v19.pc_transcripts.fa -n ${PREFIX}lncipedia_3_1_hc.fasta --uniref_code ${PREFIX}uniref_result/base_data/coding_aligned.csv --uniref_noncode ${PREFIX}uniref_result/base_data/lnc_aligned.csv --my_cod_file coding_table_gencode.txt --my_noncod_file lnc_table.csv.txt --out Human_processed_all_data.txt --folder_code ${PREFIX}hmmer/genes/ --folder_noncode ${PREFIX}hmmer/lnc
