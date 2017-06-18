@@ -7,7 +7,7 @@ def clear_name(name):
     return name
 
 
-def gtf_parser(file_name, drop_n_first_lines=1, f_format='gtf'):
+def gtf_parser(file_name, drop_n_first_lines=0, f_format='gtf'):
 
     exon_length = {}
 
@@ -17,7 +17,9 @@ def gtf_parser(file_name, drop_n_first_lines=1, f_format='gtf'):
     gtf = gtf[drop_n_first_lines:]
 
     for line in gtf:
-
+        
+        if line.startswith('#'):
+            continue
         tmp = line.split(';')
         if f_format == 'gff':
             name = tmp[2].split('=')[1].upper() if tmp[2].startswith('transcript_id') else None
@@ -31,8 +33,9 @@ def gtf_parser(file_name, drop_n_first_lines=1, f_format='gtf'):
         exon = int(tmp[4]) - int(tmp[3]) if tmp[2] == 'exon' else None
 
         if name is None:
-            print("Incorrect data format. Use gtf file!")
-            return -1
+            #print("Incorrect data format. Use gtf file!")
+            #return -1
+            continue
         elif exon is None:
             continue
         else:

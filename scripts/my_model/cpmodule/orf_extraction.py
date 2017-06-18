@@ -1,102 +1,57 @@
-import re
 import numpy as np
 
 
 class ORFFinder:
-    def __init__(self, seq, start_codons=['ATG'], stop_codons=['TAG', 'TAA', 'TGA']):
+    def __init__(self, seq):
 
-        self.start_codons = start_codons
-        self.stop_codons = stop_codons
-        self.longests = None
         self.seq = seq.upper()
-        self.start_addrs = None
 
-    def _pairwise_distances_(self, start_vec, stop_vec):
-        '''
-        start_vec, stop_vec -- numpy 1-d arrays with possibly different length;
-        function returns the matrix of pairwise distances between elements of vectors;
-        stop_vec -- expected to be the vector of stop_codons' locations.
-        Distance is positive value. Negative (and zero) distance is replaced by np.inf.
+    def _find_start(self, seq, start=0):
+        for i in range(start, len(seq), 3):
+            if seq[i:i + 3] == 'ATG':
+                return i
+        return -1
 
-        '''
-        mtx = np.array(stop_vec) - np.array(start_vec).reshape((len(start_vec), 1))
-        sh = mtx.shape
-        mtx = np.array([i if i > 0 else np.inf for i in mtx.flatten()]).reshape(sh)
-        return mtx
+    def _find_stop(self, seq, start=0, stop_codons=['TAG', 'TAA', 'TGA']):
+        for i in range(start, len(seq), 3):
+            if seq[i:i + 3] in stop_codons:
+                return i
+        return -1
 
-    def _return_start_stop_(self, start_vec, stop_vec):
+    def find_longest(self):
 
-        '''
-        return positions of start and stop codons
-        with max distance between them without any stop 
-
-        '''
-
-        dist_mtx = self._pairwise_distances_(start_vec, stop_vec)
-
-        ## just find raw with max element among min elements of the each row ##
-        indx_start = np.argmax([i if i is not np.inf else -1 for i in np.min(dist_mtx, axis=1)])
-
-        ## find column with min value for the row number [indx_start]
-        indx_stop = np.argmin(dist_mtx[indx_start])
-        return start_vec[indx_start], stop_vec[indx_stop]
-
-    def _find_three_starts_(self, patterns=['ATG']):
-
-        addrs = {0: [], 1: [], 2: []}
-        bag_of_start = []
-
-        for patt in patterns:
-            bag_of_start.extend([n.start() for n in re.finditer(patt, self.seq)])
-
-        if len(bag_of_start) == 0:
-            print("Pattern hasn't been found")
-            return -1
+        starts = []
+        stops = []
 
         for i in range(3):
-            lst = [j for j in bag_of_start if j % 3 == i]
-            if len(lst) == 0:
-                addrs[i] = -1
-                continue
-            addrs[i] = lst
+            ret1 = ret2 = 0
+            results = []
+            while ret2 != -1 and ret1 != -1:
+                ret1 = self._find_start(self.seq, start=(i if ret2 == 0 else ret2 + 3))
+                if ret1 == -1:
+                    break
+                ret2 = self._find_stop(self.seq, ret1 + 3)
+                if ret2 == -1:
+                    if ret1 != -1:
+                        results.append((len(self.seq) - ret1, ret1, len(self.seq)))
+                    break
 
-        return addrs
+                results.append((ret2 - ret1, ret1, ret2))
 
-    def find_three_longest(self):
+            if results != []:
+                max_size_idx = np.argmax([m[0] for m in results])
+                starts.append(results[max_size_idx][1])
+                stops.append(results[max_size_idx][2])
+                # print('max_size:', results[max_size_idx][0])
 
-        if self.longests is not None:
-            return self.longests, self.start_addrs.values()
-
-        self.start_addrs = self._find_three_starts_(patterns=self.start_codons)
-        stop_addrs = self._find_three_starts_(patterns=self.stop_codons)
-
-        if self.start_addrs == -1 or stop_addrs == -1:
-            self.longests = -1
+        if len(starts) == 0:
             return -1
 
-        self.longests = []
-        for start_vec, stop_vec in zip(self.start_addrs.values(), stop_addrs.values()):
-            if (start_vec != -1) and (stop_vec != -1):
-                start, stop = self._return_start_stop_(start_vec, stop_vec)
-                self.longests.append(self.seq[start:stop + 3])
+        long3 = [self.seq[n:k + 3] for n, k in zip(starts, stops)]
+        longest = long3[np.argmax([len(s) for s in long3])]
 
-        return self.longests, self.start_addrs.values()
+        mean_orf_length = np.mean([len(seqv) for seqv in long3])
+        longest_size = len(longest)
+        orf_coverage = (longest_size * 1.0) / len(self.seq)
 
-    def longest_orf(self):
-
-        find_max = lambda lst: lst[np.argmax([len(k) for k in lst])] if lst != -1 else -1
-
-        if self.longests is not None and self.longests != -1:
-            longest = find_max(self.longests)
-            size = len(longest)
-
-        elif self.longests == -1:
-            longest = size = -1
-
-        else:
-            # self.longests is None:
-            tmp = self.find_three_longest()
-            longest = find_max(tmp[0]) if tmp != -1 else -1
-            size = len(longest) if longest != -1 else -1
-
-        return longest, size
+        return starts, longest, longest_size, mean_orf_length, orf_coverage
